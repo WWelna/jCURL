@@ -24,12 +24,13 @@ package com.occultusterra.curl;
 
 public class curlExceptionEasy extends Exception {
 	private static final long serialVersionUID = 810842351091984687L;
+	static curl_lib clib = curl_lib.INSTANCE;
 	
 	public curlExceptionEasy(String reason) {
 		super(reason);
 	}
 	
-	public curlExceptionEasy(curl_lib clib, int curl_code) {
+	curlExceptionEasy(int curl_code) {
 			super(clib.curl_easy_strerror(curl_code));
 	}
 }

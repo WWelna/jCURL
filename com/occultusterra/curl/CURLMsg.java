@@ -22,39 +22,18 @@
 
 package com.occultusterra.curl;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
 
-class curl_memdatahandler implements curl_lib.DataHandler, AutoCloseable {
-	ByteArrayOutputStream data = new ByteArrayOutputStream();
+public class CURLMsg extends Structure {
+	public int msg;
+	public Pointer handle;
+	public CURLMsg_data data;
 
-	@Override public int handler(Pointer contents, int size, int nmemb, Pointer userp) {
-		int s=size*nmemb;
-		byte[] data = contents.getByteArray(0, s);
-		try {
-			this.data.write(data);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return data.length;
-	}
-	
-	public byte[] getData() {
-		return data.toByteArray();
-	}
-	
-	public String getString() {
-		return new String(data.toByteArray());
-	}
-	
-	public void reset() {
-		data.reset();
-	}
-
-	@Override
-	public void close() throws Exception {
-		data.close();
+	@Override protected List<String> getFieldOrder() {
+		return Arrays.asList("msg", "handle", "data");
 	}
 }

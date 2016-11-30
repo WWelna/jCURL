@@ -22,7 +22,7 @@
 
 package com.occultusterra.curl;
 
-public class curl_errors {
+class curl_errors {
 	final static int CURLE_OK=0;
 	final static int CURLE_UNSUPPORTED_PROTOCOL=1;
 	final static int CURLE_FAILED_INIT=2;
@@ -116,5 +116,20 @@ public class curl_errors {
 	final static int CURLE_SSL_PINNEDPUBKEYNOTMATCH=90;
 	final static int CURLE_SSL_INVALIDCERTSTATUS=91;
 	final static int CURLE_HTTP2_STREAM=92;
+	
+	final static int CURLM_CALL_MULTI_PERFORM=-1;
+	final static int CURLM_OK=0;
+	final static int CURLM_BAD_HANDLE=1;
+	final static int CURLM_BAD_EASY_HANDLE=2;
+	final static int CURLM_OUT_OF_MEMORY=3;
+	final static int CURLM_INTERNAL_ERROR=4;
+	final static int CURLM_BAD_SOCKET=5;
+	final static int CURLM_UNKNOWN_OPTION=6;
+	final static int CURLM_ADDED_ALREADY=7;
+	final static int CURLM_LAST=8;
+	
+	final static int CURLMSG_NONE=0;
+	final static int CURLMSG_DONE=1;
+	final static int CURLMSG_LAST=2;
 }
 

@@ -25,11 +25,12 @@ package com.occultusterra.curl;
 import com.sun.jna.*;
 import com.sun.jna.ptr.*;
 
-public interface curl_lib extends Library {
-		//curl_lib INSTANCE = (curl_lib)Native.loadLibrary("libCurl.dll", curl_lib.class);
+interface curl_lib extends Library {
+		curl_lib INSTANCE = (curl_lib)Native.loadLibrary("libCurl.dll", curl_lib.class);
 		interface DataHandler extends Callback {
 			int handler(Pointer contents, int size, int nmemb, Pointer userp);
 		}
+		int curl_global_init(long flags);
 		/* Misc API */
 		String curl_version();
 		String curl_easy_escape(Pointer Handle, String string, int length);
@@ -56,5 +57,6 @@ public interface curl_lib extends Library {
 		int curl_multi_remove_handle(Pointer multi_handle, Pointer easy_handle);
 		int curl_multi_perform(Pointer multi_handle, IntByReference running_handles);
 		int curl_multi_cleanup(Pointer multi_handle);
+		CURLMsg curl_multi_info_read(Pointer multi_handle, IntByReference msgs_in_queue); 
 		String curl_multi_strerror(int errornum);
 }
