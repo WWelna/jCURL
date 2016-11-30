@@ -32,6 +32,7 @@ public class Curl implements AutoCloseable {
 	private Pointer curl_handle=Pointer.NULL;
 	
 	private int last_perform_error_code;
+	private boolean multi_flag=false;
 	
 	private curl_memdatahandler header;
 	private curl_memdatahandler body;
@@ -57,6 +58,8 @@ public class Curl implements AutoCloseable {
 	}
 	
 	public int perform() throws curlExceptionEasy {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
 		header.reset();
 		body.reset();
 		last_perform_error_code = clib.curl_easy_perform(curl_handle);
@@ -68,12 +71,16 @@ public class Curl implements AutoCloseable {
 	/* Set Things */
 	
 	public void setOpt(int value, Object parameter) throws curlExceptionEasy {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
 		int ret = clib.curl_easy_setopt(curl_handle, value, parameter);
 		if(ret != curl_errors.CURLE_OK)
 			throw new curlExceptionEasy(ret);
 	}
 	
 	public void setOpt(int value, boolean parameter) throws curlExceptionEasy {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
 		int ret = clib.curl_easy_setopt(curl_handle, value, parameter);
 		if(ret != curl_errors.CURLE_OK)
 			throw new curlExceptionEasy(ret);
@@ -223,6 +230,8 @@ public class Curl implements AutoCloseable {
 	}
 	
 	public void setHeaders(Map<String,String> headers) throws curlExceptionEasy {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
 		for(Map.Entry<String, String> entry : headers.entrySet())
 			clib.curl_slist_append(header_list, entry.getKey()+": "+entry.getValue());
 		setOpt(curl_opts.CURLOPT_HTTPHEADER, header_list);
@@ -258,7 +267,7 @@ public class Curl implements AutoCloseable {
 		return body.getString();
 	}
 	
-	public String getVersion() {
+	public static String getVersion() {
 		return clib.curl_version();
 	}
 	
@@ -280,8 +289,14 @@ public class Curl implements AutoCloseable {
 		return curl_handle;
 	}
 	
+	void multiFlag(boolean b) {
+		multi_flag = b;
+	}
+	
 	@Override
-	public void close() throws Exception {
+	public void close() throws Exception, curlExceptionEasy {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
 		if(header != null) {
 			header.close();
 			header = null;
@@ -290,17 +305,19 @@ public class Curl implements AutoCloseable {
 			body.close();
 			body = null;
 		}
-		if(curl_handle != Pointer.NULL) {
-			clib.curl_free(curl_handle);
-			curl_handle = Pointer.NULL;
-		}
 		if(header_list != Pointer.NULL) {
 			clib.curl_slist_free_all(header_list);
 			header_list = Pointer.NULL;
 		}
+		if(curl_handle != Pointer.NULL) {
+			clib.curl_free(curl_handle);
+			curl_handle = Pointer.NULL;
+		}
 	}
 	
 	public void reset() throws Exception, curlExceptionEasy {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
 		if(header != null)
 			header.reset();
 		else

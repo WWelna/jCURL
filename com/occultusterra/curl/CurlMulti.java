@@ -58,7 +58,7 @@ public class CurlMulti implements AutoCloseable {
 		if(err!=curl_errors.CURLM_OK)
 			throw new curlExceptionMulti(err);
 		handles.add(c);
-		
+		c.multiFlag(true);
 	}
 	
 	public void removeCurl(Curl c) throws curlExceptionMulti {
@@ -66,6 +66,7 @@ public class CurlMulti implements AutoCloseable {
 		if(err!=curl_errors.CURLM_OK)
 			throw new curlExceptionMulti(err);
 		handles.remove(c);
+		c.multiFlag(false);
 	}
 	
 	public void removeCurl(ArrayList<Curl> handles) throws curlExceptionMulti {
@@ -107,6 +108,17 @@ public class CurlMulti implements AutoCloseable {
 		for(Curl c: handles) {
 			clib.curl_multi_remove_handle(multi_handle, c.getHandle());
 			c.close();
+			c.multiFlag(false);
+		}
+		handles.clear();
+	}
+	
+	void removeHandles() {
+		for(Curl c: handles) {
+			if(c.getHandle() != Pointer.NULL) {
+				clib.curl_multi_remove_handle(multi_handle, c.getHandle());
+				c.multiFlag(false);
+			}
 		}
 		handles.clear();
 	}
@@ -114,6 +126,7 @@ public class CurlMulti implements AutoCloseable {
 	@Override
 	public void close() {
 		if(multi_handle != Pointer.NULL) {
+			removeHandles();
 			clib.curl_multi_cleanup(multi_handle);
 			multi_handle = Pointer.NULL;
 		}
