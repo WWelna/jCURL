@@ -107,8 +107,8 @@ public class CurlMulti implements AutoCloseable {
 	public void closeHandles() throws Exception {
 		for(Curl c: handles) {
 			clib.curl_multi_remove_handle(multi_handle, c.getHandle());
-			c.close();
 			c.multiFlag(false);
+			c.close();
 		}
 		handles.clear();
 	}

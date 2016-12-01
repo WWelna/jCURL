@@ -35,7 +35,6 @@ interface curl_lib extends Library {
 		String curl_version();
 		String curl_easy_escape(Pointer Handle, String string, int length);
 		String curl_easy_unescape(Pointer Handle, String url, int inlength, IntByReference outlength ); 
-		int curl_easy_getinfo(Pointer curl, int info, Object... arguments);
 		/* Linked Things */
 		int curl_formadd(PointerByReference firstitem, PointerByReference lastitem, Object... arguments);
 		void curl_formfree(Pointer form);
@@ -45,7 +44,10 @@ interface curl_lib extends Library {
 		Pointer curl_easy_init();
 		int curl_easy_cleanup(Pointer Handle);
 		int curl_easy_setopt(Pointer Handle, int option, Object parameter);
-		int curl_easy_setopt(Pointer Handle, int option, boolean bool);
+		int curl_easy_setopt(Pointer Handle, int option, long parameter);
+		int curl_easy_getinfo(Pointer handle, int option, PointerByReference parameter); 
+		int curl_easy_getinfo(Pointer handle, int option, LongByReference parameter); 
+		int curl_easy_getinfo(Pointer handle, int option, DoubleByReference parameter); 
 		int curl_easy_perform(Pointer Handle);
 		String curl_easy_strerror(int errorNum);
 		void curl_free(Pointer p);

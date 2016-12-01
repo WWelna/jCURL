@@ -22,8 +22,12 @@
 
 package com.occultusterra.curl;
 
+import java.io.IOException;
 import java.util.Map;
 import com.sun.jna.Pointer;
+import com.sun.jna.ptr.DoubleByReference;
+import com.sun.jna.ptr.LongByReference;
+import com.sun.jna.ptr.PointerByReference;
 
 
 public class Curl implements AutoCloseable {
@@ -37,13 +41,19 @@ public class Curl implements AutoCloseable {
 	private curl_memdatahandler header;
 	private curl_memdatahandler body;
 	
+	private String body_tofile_file = "";
+	
 	private Pointer header_list = Pointer.NULL;
 	
 	static {
 		global_err = clib.curl_global_init(0);
 	}
 	
-	final public static int CURL_OK=curl_errors.CURLE_OK;
+	final public static int OK=curl_errors.CURLE_OK;
+	final public static long HTTP_VERSION_NONE=curl_opts.CURL_HTTP_VERSION_NONE;
+	final public static long HTTP_VERSION_1_0=curl_opts.CURL_HTTP_VERSION_1_0;
+	final public static long HTTP_VERSION_1_1=curl_opts.CURL_HTTP_VERSION_1_1;
+	final public static long HTTP_VERSION_2_0=curl_opts.CURL_HTTP_VERSION_2_0;
 	
 	public Curl() throws curlExceptionEasy {
 		if(clib == Pointer.NULL || global_err!=0)
@@ -53,37 +63,174 @@ public class Curl implements AutoCloseable {
 			throw new curlExceptionEasy("Null Pointer returned on curl_easy_init()");
 		body = new curl_memdatahandler();
 		header = new curl_memdatahandler();
-		clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_WRITEFUNCTION, body);
 		clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_HEADERFUNCTION, header);
+		clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_FILETIME, true);
+		clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_WRITEFUNCTION, body);
 	}
 	
-	public int perform() throws curlExceptionEasy {
+	public int perform() throws curlExceptionEasy, IOException {
 		if(multi_flag)
 			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
+		curl_filedatahandler body_tofile=null;
 		header.reset();
 		body.reset();
+		if(body_tofile_file.length()>0) {
+			body_tofile = new curl_filedatahandler(body_tofile_file);
+			clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_WRITEFUNCTION, body_tofile);
+		}
+		last_perform_error_code = clib.curl_easy_perform(curl_handle);
+		if(last_perform_error_code != curl_errors.CURLE_OK)
+			throw new curlExceptionEasy(last_perform_error_code);
+		if(body_tofile != null) {
+			body_tofile.close();
+			clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_WRITEFUNCTION, body);
+			return body_tofile.getSize();
+		} else
+			return body.getSize();
+	}
+	
+	public int perform(String file) throws curlExceptionEasy, IOException {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
+		curl_filedatahandler tofile = new curl_filedatahandler(file);
+		header.reset();
+		body.reset();
+		clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_WRITEFUNCTION, tofile);
 		last_perform_error_code = clib.curl_easy_perform(curl_handle);
 		if(last_perform_error_code != curl_errors.CURLE_OK)
 			throw new curlExceptionEasy(last_perform_error_code); 
-		return last_perform_error_code;
+		tofile.close();
+		clib.curl_easy_setopt(curl_handle, curl_opts.CURLOPT_WRITEFUNCTION, body);
+		return tofile.getSize();
+	}
+	
+	public void setToFile(String file) {
+		body_tofile_file = file;
+	}
+	
+	public String getToFile() {
+		return body_tofile_file;
 	}
 	
 	/* Set Things */
 	
-	public void setOpt(int value, Object parameter) throws curlExceptionEasy {
+	void setOpt(int value, Object parameter) throws curlExceptionEasy {
 		if(multi_flag)
 			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
-		int ret = clib.curl_easy_setopt(curl_handle, value, parameter);
-		if(ret != curl_errors.CURLE_OK)
-			throw new curlExceptionEasy(ret);
+		int err = clib.curl_easy_setopt(curl_handle, value, parameter);
+		if(err != curl_errors.CURLE_OK)
+			throw new curlExceptionEasy(err);
 	}
 	
-	public void setOpt(int value, boolean parameter) throws curlExceptionEasy {
+	void setOpt(int value, long parameter) throws curlExceptionEasy {
 		if(multi_flag)
 			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
-		int ret = clib.curl_easy_setopt(curl_handle, value, parameter);
-		if(ret != curl_errors.CURLE_OK)
-			throw new curlExceptionEasy(ret);
+		int err = clib.curl_easy_setopt(curl_handle, value, parameter);
+		if(err != curl_errors.CURLE_OK)
+			throw new curlExceptionEasy(err);
+	}
+	
+	void setOpt(int value, boolean parameter) throws curlExceptionEasy {
+		if(multi_flag)
+			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
+		int err;
+		if(parameter == true)
+			err=clib.curl_easy_setopt(curl_handle, value, 1l);
+		else
+			err=clib.curl_easy_setopt(curl_handle, value, 0l);
+		if(err != curl_errors.CURLE_OK)
+			throw new curlExceptionEasy(err);
+	}
+	
+	String getOptString(int value) throws curlExceptionEasy {
+		PointerByReference p_ref = new PointerByReference();
+		int err = clib.curl_easy_getinfo(curl_handle, value, p_ref);
+		if(err != curl_errors.CURLE_OK)
+			throw new curlExceptionEasy(err);
+		if(p_ref.getValue() == Pointer.NULL)
+			return new String("");
+		else
+			return new String(p_ref.getValue().getString(0));
+	}
+	
+	long getOptLong(int value) throws curlExceptionEasy {
+		LongByReference p_ref = new LongByReference();
+		int err = clib.curl_easy_getinfo(curl_handle, value, p_ref);
+		if(err != curl_errors.CURLE_OK)
+			throw new curlExceptionEasy(err);
+		return p_ref.getValue();
+	}
+	
+	double getOptDouble(int value) throws curlExceptionEasy {
+		DoubleByReference p_ref = new DoubleByReference();
+		int err = clib.curl_easy_getinfo(curl_handle, value, p_ref);
+		if(err != curl_errors.CURLE_OK)
+			throw new curlExceptionEasy(err);
+		return p_ref.getValue();
+	}
+	
+	public String getEffectiveUrl() throws curlExceptionEasy {
+		return getOptString(curl_opts.CURLINFO_EFFECTIVE_URL);
+	}
+	
+	public long getResponseCode() throws curlExceptionEasy {
+		return getOptLong(curl_opts.CURLINFO_RESPONSE_CODE);
+	}
+	
+	public double getTotalTime() throws curlExceptionEasy {
+		return getOptDouble(curl_opts.CURLINFO_TOTAL_TIME);
+	}
+	
+	public long getFileTime() throws curlExceptionEasy {
+		return getOptLong(curl_opts.CURLINFO_FILETIME);
+	}
+	
+	public String getRedirectUrl() throws curlExceptionEasy {
+		return getOptString(curl_opts.CURLINFO_REDIRECT_URL);
+	}
+	
+	public long getRedirectCount() throws curlExceptionEasy {
+		return getOptLong(curl_opts.CURLINFO_REDIRECT_COUNT);
+	}
+	
+	public long getHTTPVersion() throws curlExceptionEasy {
+		return getOptLong(curl_opts.CURLINFO_HTTP_VERSION);
+	}
+	
+	public String getContentType() throws curlExceptionEasy {
+		return getOptString(curl_opts.CURLINFO_CONTENT_TYPE);
+	}
+	
+	public double getSizeUploaded() throws curlExceptionEasy {
+		return getOptDouble(curl_opts.CURLINFO_SIZE_UPLOAD);
+	}
+	
+	public double getSizeDownloaded() throws curlExceptionEasy {
+		return getOptDouble(curl_opts.CURLINFO_SIZE_DOWNLOAD);
+	}
+	
+	public double getSpeedUploaded() throws curlExceptionEasy {
+		return getOptDouble(curl_opts.CURLINFO_SPEED_UPLOAD);
+	}
+	
+	public double getSpeedDownloaded() throws curlExceptionEasy {
+		return getOptDouble(curl_opts.CURLINFO_SPEED_DOWNLOAD);
+	}
+	
+	public boolean getSSLVerified() throws curlExceptionEasy {
+		long ret = getOptLong(curl_opts.CURLINFO_SSL_VERIFYRESULT);
+		if(ret==1)
+			return true;
+		else
+			return false;
+	}
+	
+	public String getPeerIP() throws curlExceptionEasy {
+		return getOptString(curl_opts.CURLINFO_PRIMARY_IP);
+	}
+	
+	public long getPeerPort() throws curlExceptionEasy {
+		return getOptLong(curl_opts.CURLINFO_PRIMARY_PORT);
 	}
 	
 	public void setVerbose(boolean bool) throws curlExceptionEasy {
@@ -96,6 +243,15 @@ public class Curl implements AutoCloseable {
 	
 	public void setUserAgent(String agent) throws curlExceptionEasy {
 		setOpt(curl_opts.CURLOPT_USERAGENT, agent);
+	}
+	
+	public void setNobody(boolean b) throws curlExceptionEasy {
+		setOpt(curl_opts.CURLOPT_NOBODY, b);
+	}
+	
+	// Little more... Functionally Descriptive 
+	public void setHEADRequest(boolean b) throws curlExceptionEasy {
+		setNobody(b);
 	}
 	
 	public void setProxy(String proxy) throws curlExceptionEasy {
@@ -305,6 +461,7 @@ public class Curl implements AutoCloseable {
 			body.close();
 			body = null;
 		}
+		body_tofile_file = "";
 		if(header_list != Pointer.NULL) {
 			clib.curl_slist_free_all(header_list);
 			header_list = Pointer.NULL;
@@ -326,6 +483,7 @@ public class Curl implements AutoCloseable {
 			body.reset();
 		else
 			body = new curl_memdatahandler();
+		body_tofile_file = "";
 		if(curl_handle != Pointer.NULL)
 			clib.curl_free(curl_handle);
 		curl_handle = clib.curl_easy_init();

@@ -23,8 +23,15 @@
 package com.occultusterra.curl;
 
 class curl_opts {
+	
+	final static long CURL_HTTP_VERSION_NONE=0;
+	final static long CURL_HTTP_VERSION_1_0=1;
+	final static long CURL_HTTP_VERSION_1_1=2;
+	final static long CURL_HTTP_VERSION_2_0=3;
+	
 	static final int CURLOPT_VERBOSE=41;
 	static final int CURLOPT_HEADER=42;
+	static final int CURLOPT_NOBODY=44;
 	static final int CURLOPT_WRITEFUNCTION=20011;
 	static final int CURLOPT_WRITEDATA=10001;
 	static final int CURLOPT_READFUNCTION=20012;
@@ -77,4 +84,22 @@ class curl_opts {
 	static final int CURLOPT_CAINFO=10065;
 	static final int CURLOPT_CAPATH=10097;
 	static final int CURLOPT_CRLFILE=10169;
+	static final int CURLOPT_FILETIME=69;
+	
+	static final int CURLINFO_EFFECTIVE_URL=1048577;
+	static final int CURLINFO_RESPONSE_CODE=2097154;
+	static final int CURLINFO_HTTP_VERSION=2097198;
+	static final int CURLINFO_TOTAL_TIME=3145731;
+	static final int CURLINFO_FILETIME=2097166;
+	static final int CURLINFO_REDIRECT_URL=1048607;
+	static final int CURLINFO_REDIRECT_COUNT=2097172;
+	static final int CURLINFO_SIZE_UPLOAD=3145735;
+	static final int CURLINFO_SIZE_DOWNLOAD=3145736;
+	static final int CURLINFO_SPEED_DOWNLOAD=3145737;
+	static final int CURLINFO_SPEED_UPLOAD=3145738;
+	static final int CURLINFO_SSL_VERIFYRESULT=2097165;
+	static final int CURLINFO_CONTENT_TYPE=1048594;
+	static final int CURLINFO_PRIMARY_IP=1048608;
+	static final int CURLINFO_PRIMARY_PORT=2097192;
+	
 }

@@ -22,45 +22,40 @@
 
 package com.occultusterra.curl;
 
-import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 import com.sun.jna.Pointer;
 
-class curl_memdatahandler implements curl_lib.DataHandler, AutoCloseable {
-	ByteArrayOutputStream data = new ByteArrayOutputStream();
-
-	@Override public int handler(Pointer contents, int size, int nmemb, Pointer userp) {
-		int s=size*nmemb;
-		byte[] data = contents.getByteArray(0, s);
+class curl_filedatahandler implements curl_lib.DataHandler, AutoCloseable {
+	FileOutputStream f;
+	int written=0;
+	
+	curl_filedatahandler(String file) throws IOException {
+		f = new FileOutputStream(file, false);
+	}
+	
+	@Override
+	public int handler(Pointer contents, int size, int nmemb, Pointer userp) {
+		if(f == null)
+			return 0;
 		try {
-			this.data.write(data);
+			f.write(contents.getByteArray(0, size*nmemb));
+			written += size*nmemb;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return data.length;
-	}
-	
-	public byte[] getData() {
-		return data.toByteArray();
-	}
-	
-	public String getString() {
-		return new String(data.toByteArray());
+		return size*nmemb;
 	}
 	
 	public int getSize() {
-		return data.size();
-	}
-	
-	public void reset() {
-		data.reset();
+		return written;
 	}
 
 	@Override
 	public void close() {
 		try {
-			data.close();
+			f.close();
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
