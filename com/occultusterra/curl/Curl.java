@@ -23,7 +23,11 @@
 package com.occultusterra.curl;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.DoubleByReference;
 import com.sun.jna.ptr.LongByReference;
@@ -417,6 +421,14 @@ public class Curl implements AutoCloseable {
 	/* Get Data/Result Information */
 	public String getHeaders() {
 		return header.getString();
+	}
+	
+	public Map<String,String> getHeadersMap() {
+		Map<String,String> ret = new HashMap<>();
+		Matcher m = Pattern.compile("[\\r\\n|\\n](?<field>.+):\\s(?<value>.+)[\\r\\n|\\n]").matcher(header.getString());
+		while(m.find())
+			ret.put(m.group("field"), m.group("value"));
+		return ret;
 	}
 	
 	public String getBody() {
