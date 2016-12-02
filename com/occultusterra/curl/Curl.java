@@ -392,7 +392,7 @@ public class Curl implements AutoCloseable {
 	public void setHeaders(Map<String,String> headers) throws curlExceptionEasy {
 		if(multi_flag)
 			throw new curlExceptionEasy("Attached to Multi Handle, can not modify");
-		for(Map.Entry<String, String> entry : headers.entrySet())
+		for(Map.Entry<String, String> entry :headers.entrySet())
 			clib.curl_slist_append(header_list, entry.getKey()+": "+entry.getValue());
 		setOpt(curl_opts.CURLOPT_HTTPHEADER, header_list);
 	}
@@ -429,6 +429,13 @@ public class Curl implements AutoCloseable {
 		while(m.find())
 			ret.put(m.group("field"), m.group("value"));
 		return ret;
+	}
+	
+	public String getHeader(String field) {
+		for(Map.Entry<String, String> entry :getHeadersMap().entrySet())
+			if(entry.getKey().toLowerCase().equals(field.toLowerCase()))
+				return entry.getValue();
+		return null;
 	}
 	
 	public String getBody() {
